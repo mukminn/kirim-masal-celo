@@ -172,6 +172,45 @@ header h1 {
     font-weight: 600;
 }
 
+.amount-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.amount-input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1.2em;
+    font-weight: 600;
+    transition: border-color 0.3s ease;
+}
+
+.amount-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.amount-currency {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #667eea;
+    padding: 12px 15px;
+    background: #f0f4ff;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+.amount-hint {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: 0.9em;
+}
+
 .input-group textarea {
     width: 100%;
     padding: 12px;

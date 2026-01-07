@@ -57,6 +57,7 @@ function initializeApp() {
     document.getElementById('sendAll').addEventListener('click', sendAllTransactions);
     document.getElementById('clearTransactions').addEventListener('click', clearTransactions);
     document.getElementById('recipientList').addEventListener('input', updateStats);
+    document.getElementById('sendAmount').addEventListener('input', updateStats);
     
     addStatusLog('Aplikasi siap. Hubungkan wallet untuk memulai.', 'info');
 }
@@ -209,8 +210,25 @@ function updateStats() {
     }
 
     const recipientListEl = document.getElementById('recipientList');
-    if (!recipientListEl) {
-        return; // Element not ready
+    const sendAmountEl = document.getElementById('sendAmount');
+    
+    if (!recipientListEl || !sendAmountEl) {
+        return; // Elements not ready
+    }
+
+    // Get amount per recipient
+    const sendAmount = parseFloat(sendAmountEl.value) || 0;
+    
+    // Validate amount
+    if (sendAmount <= 0 || sendAmount >= 1e18 || !isFinite(sendAmount)) {
+        const totalRecipientsEl = document.getElementById('totalRecipients');
+        const totalAmountEl = document.getElementById('totalAmount');
+        if (totalRecipientsEl) totalRecipientsEl.textContent = '0';
+        if (totalAmountEl) totalAmountEl.textContent = '0.0000';
+        if (walletBalance !== null) {
+            updateBalanceWarning();
+        }
+        return;
     }
 
     const recipientList = recipientListEl.value.trim();
@@ -226,7 +244,6 @@ function updateStats() {
     }
 
     const lines = recipientList.split('\n').filter(line => line.trim());
-    let totalAmount = 0;
     let validCount = 0;
 
     lines.forEach(line => {
@@ -251,28 +268,14 @@ function updateStats() {
             return; // Skip invalid address
         }
         
-        // Extract amount - remove address and separators, get remaining part
-        // Use replace only for first occurrence to avoid issues
-        let amountStr = trimmedLine.replace(new RegExp('^' + address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), '').trim();
-        
-        // Remove separators (comma, semicolon, tabs, spaces)
-        amountStr = amountStr.replace(/^[,;\t\s]+/, '').trim();
-        
-        // Extract numeric value (support decimal points, but validate format)
-        // Match valid decimal number (not just dots)
-        const amountMatch = amountStr.match(/^(\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/);
-        
-        if (!amountMatch || !amountMatch[1]) {
-            return; // Skip if no amount found
-        }
-        
-        const amount = parseFloat(amountMatch[1] || amountMatch[0]);
-        
-        if (!isNaN(amount) && isFinite(amount) && amount > 0 && amount < 1e18) {
-            totalAmount += amount;
+        // If address is valid and matches the trimmed line (no extra content), count it
+        if (trimmedLine.toLowerCase() === address.toLowerCase()) {
             validCount++;
         }
     });
+
+    // Calculate total amount (sendAmount * validCount)
+    const totalAmount = sendAmount * validCount;
 
     const totalRecipientsEl = document.getElementById('totalRecipients');
     const totalAmountEl = document.getElementById('totalAmount');
@@ -302,9 +305,19 @@ function prepareTransactions() {
         return;
     }
 
+    // Get amount per recipient
+    const sendAmountEl = document.getElementById('sendAmount');
+    const sendAmount = parseFloat(sendAmountEl.value) || 0;
+    
+    if (!sendAmount || sendAmount <= 0 || sendAmount >= 1e18 || !isFinite(sendAmount)) {
+        alert('Masukkan jumlah CELO yang valid (lebih dari 0 dan kurang dari 1e18)!');
+        addStatusLog('ERROR: Jumlah CELO tidak valid', 'error');
+        return;
+    }
+
     const recipientList = document.getElementById('recipientList').value.trim();
     if (!recipientList) {
-        alert('Masukkan daftar penerima terlebih dahulu!');
+        alert('Masukkan daftar alamat penerima terlebih dahulu!');
         return;
     }
 
@@ -325,6 +338,12 @@ function prepareTransactions() {
         
         const address = addressMatch[0];
         
+        // Validate that line contains only address (no extra content)
+        if (trimmedLine.toLowerCase() !== address.toLowerCase()) {
+            addStatusLog(`Baris ${index + 1}: Baris harus berisi hanya alamat (tanpa jumlah) - ${trimmedLine.substring(0, 30)}...`, 'error');
+            return;
+        }
+        
         // Validate address using ethers
         try {
             if (!ethers.utils.isAddress(address)) {
@@ -335,40 +354,13 @@ function prepareTransactions() {
             addStatusLog(`Baris ${index + 1}: Alamat tidak valid - ${address}`, 'error');
             return;
         }
-        
-        // Extract amount - remove address and separators, get remaining part
-        // Use replace only for first occurrence to avoid issues
-        let amountStr = trimmedLine.replace(new RegExp('^' + address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), '').trim();
-        
-        // Remove separators (comma, semicolon, tabs, spaces)
-        amountStr = amountStr.replace(/^[,;\t\s]+/, '').trim();
-        
-        // Extract numeric value (support decimal points and scientific notation)
-        // Match valid decimal number (not just dots)
-        const amountMatch = amountStr.match(/^(\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/);
-        
-        if (!amountMatch || !amountMatch[1]) {
-            addStatusLog(`Baris ${index + 1}: Jumlah tidak ditemukan setelah alamat - ${trimmedLine}`, 'error');
-            return;
-        }
-        
-        const amountNum = parseFloat(amountMatch[1] || amountMatch[0]);
-        
-        if (isNaN(amountNum) || !isFinite(amountNum) || amountNum <= 0) {
-            addStatusLog(`Baris ${index + 1}: Jumlah tidak valid - ${amountMatch[1] || amountMatch[0]}`, 'error');
-            return;
-        }
 
-        if (amountNum >= 1e18) {
-            addStatusLog(`Baris ${index + 1}: Jumlah terlalu besar - ${amountNum}`, 'error');
-            return;
-        }
-
+        // Use the same amount for all recipients
         transactions.push({
             id: transactions.length,
             address: address,
-            amount: ethers.utils.parseEther(amountNum.toString()),
-            amountDisplay: amountNum,
+            amount: ethers.utils.parseEther(sendAmount.toString()),
+            amountDisplay: sendAmount,
             status: 'pending'
         });
     });
