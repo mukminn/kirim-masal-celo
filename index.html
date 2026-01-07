@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kirim Massal CELO Token - Mainnet</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Kirim Massal CELO Token</h1>
+            <p class="subtitle">Mainnet - Konfirmasi Manual Per Transaksi</p>
+        </header>
+
+        <div class="wallet-section">
+            <div class="wallet-info" id="walletInfo">
+                <p>Belum terhubung ke wallet</p>
+            </div>
+            <button id="connectWallet" class="btn btn-primary">Hubungkan Wallet</button>
+        </div>
+
+        <div class="main-content">
+            <div class="form-section">
+                <h2>Daftar Penerima</h2>
+                <div class="input-group">
+                    <label for="recipientList">Alamat & Jumlah (Format: alamat,jumlah per baris)</label>
+                    <textarea id="recipientList" placeholder="0x1234...,1.5&#10;0x5678...,2.0&#10;0x9abc...,0.5" rows="10"></textarea>
+                    <small>Contoh: 0x1234567890123456789012345678901234567890,1.5</small>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Total Penerima:</span>
+                        <span class="stat-value" id="totalRecipients">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total CELO:</span>
+                        <span class="stat-value" id="totalAmount">0</span>
+                    </div>
+                </div>
+
+                <button id="prepareTransactions" class="btn btn-secondary">Siapkan Transaksi</button>
+            </div>
+
+            <div class="transactions-section" id="transactionsSection" style="display: none;">
+                <h2>Daftar Transaksi</h2>
+                <div id="transactionsList"></div>
+                <div class="transaction-controls">
+                    <button id="sendAll" class="btn btn-success" disabled>Kirim Semua</button>
+                    <button id="clearTransactions" class="btn btn-danger">Bersihkan</button>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <h2>Status</h2>
+                <div id="statusLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
