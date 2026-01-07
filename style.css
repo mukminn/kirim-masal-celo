@@ -39,6 +39,89 @@ header h1 {
     font-size: 1.1em;
 }
 
+.security-badge {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.badge-item {
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    border: 1px solid #4caf50;
+}
+
+.badge-item a {
+    color: #2e7d32;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.badge-item a:hover {
+    text-decoration: underline;
+}
+
+.security-notice {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.notice-content h3 {
+    color: #856404;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+}
+
+.notice-content ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 15px;
+}
+
+.notice-content ul li {
+    padding: 8px 0;
+    color: #856404;
+    line-height: 1.6;
+}
+
+.notice-content ul li strong {
+    color: #664d03;
+}
+
+.notice-content ul li a {
+    color: #664d03;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+.notice-content ul li a:hover {
+    color: #856404;
+}
+
+.disclaimer {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+    color: #856404;
+    margin-top: 15px;
+    font-size: 0.95em;
+    line-height: 1.6;
+}
+
+.disclaimer strong {
+    color: #664d03;
+}
+
 .wallet-section {
     background: #f8f9fa;
     padding: 20px;
