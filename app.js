@@ -16,12 +16,41 @@ let signer = null;
 let walletAddress = null;
 let transactions = [];
 
+// Initialize - Wait for ethers library to load
+function waitForEthers() {
+    return new Promise((resolve) => {
+        if (typeof ethers !== 'undefined') {
+            resolve();
+        } else {
+            const checkInterval = setInterval(() => {
+                if (typeof ethers !== 'undefined') {
+                    clearInterval(checkInterval);
+                    resolve();
+                }
+            }, 100);
+        }
+    });
+}
+
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    initializeApp();
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await waitForEthers();
+        initializeApp();
+    } catch (error) {
+        console.error('Error loading ethers library:', error);
+        alert('Gagal memuat library ethers.js. Pastikan koneksi internet Anda aktif.');
+    }
 });
 
 function initializeApp() {
+    // Check if ethers is available
+    if (typeof ethers === 'undefined') {
+        alert('Library ethers.js belum dimuat. Silakan refresh halaman.');
+        addStatusLog('ERROR: Library ethers.js tidak tersedia', 'error');
+        return;
+    }
+
     document.getElementById('connectWallet').addEventListener('click', connectWallet);
     document.getElementById('prepareTransactions').addEventListener('click', prepareTransactions);
     document.getElementById('sendAll').addEventListener('click', sendAllTransactions);
@@ -33,6 +62,13 @@ function initializeApp() {
 
 async function connectWallet() {
     try {
+        // Check if ethers is available
+        if (typeof ethers === 'undefined') {
+            alert('Library ethers.js belum dimuat. Silakan refresh halaman.');
+            addStatusLog('ERROR: Library ethers.js tidak tersedia', 'error');
+            return;
+        }
+
         if (typeof window.ethereum === 'undefined') {
             alert('MetaMask atau wallet lainnya tidak terdeteksi. Silakan install MetaMask terlebih dahulu.');
             addStatusLog('ERROR: Wallet tidak terdeteksi', 'error');
@@ -111,6 +147,10 @@ function disconnectWallet() {
 }
 
 function updateStats() {
+    if (typeof ethers === 'undefined') {
+        return; // Skip if ethers not loaded
+    }
+
     const recipientList = document.getElementById('recipientList').value.trim();
     if (!recipientList) {
         document.getElementById('totalRecipients').textContent = '0';
@@ -127,9 +167,13 @@ function updateStats() {
         if (parts.length === 2) {
             const address = parts[0];
             const amount = parseFloat(parts[1]);
-            if (ethers.utils.isAddress(address) && !isNaN(amount) && amount > 0) {
-                totalAmount += amount;
-                validCount++;
+            try {
+                if (ethers.utils.isAddress(address) && !isNaN(amount) && amount > 0) {
+                    totalAmount += amount;
+                    validCount++;
+                }
+            } catch (e) {
+                // Skip invalid address
             }
         }
     });
@@ -139,6 +183,12 @@ function updateStats() {
 }
 
 function prepareTransactions() {
+    if (typeof ethers === 'undefined') {
+        alert('Library ethers.js belum dimuat. Silakan refresh halaman.');
+        addStatusLog('ERROR: Library ethers.js tidak tersedia', 'error');
+        return;
+    }
+
     if (!signer) {
         alert('Silakan hubungkan wallet terlebih dahulu!');
         return;
@@ -220,6 +270,12 @@ function displayTransactions() {
 }
 
 async function sendAllTransactions() {
+    if (typeof ethers === 'undefined') {
+        alert('Library ethers.js belum dimuat. Silakan refresh halaman.');
+        addStatusLog('ERROR: Library ethers.js tidak tersedia', 'error');
+        return;
+    }
+
     if (!signer) {
         alert('Silakan hubungkan wallet terlebih dahulu!');
         return;
