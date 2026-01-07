@@ -66,6 +66,32 @@ header h1 {
     font-weight: bold;
 }
 
+.wallet-balance {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.balance-label {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.balance-value {
+    color: #667eea;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.balance-currency {
+    color: #667eea;
+    font-weight: 600;
+}
+
 .btn {
     padding: 12px 24px;
     border: none;
@@ -197,6 +223,73 @@ header h1 {
     color: #667eea;
     font-size: 1.5em;
     font-weight: bold;
+}
+
+.stat-item.highlight {
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    border: 2px solid #667eea;
+}
+
+.stat-item .stat-value.insufficient {
+    color: #dc3545;
+}
+
+.stat-item .stat-label.warning,
+.stat-item .stat-value.warning {
+    color: #dc3545;
+}
+
+.input-format {
+    background: #f0f4ff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border-left: 4px solid #667eea;
+}
+
+.format-example {
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.format-example strong {
+    color: #667eea;
+}
+
+.format-example code {
+    background: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    color: #e83e8c;
+}
+
+.example-row {
+    margin: 5px 0;
+    padding: 8px;
+    background: white;
+    border-radius: 4px;
+}
+
+.example-row code {
+    color: #28a745;
+    font-size: 0.9em;
+}
+
+.input-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 10px;
+    background: #fff3cd;
+    border-radius: 6px;
+    color: #856404;
+    font-size: 0.9em;
+}
+
+.hint-icon {
+    font-size: 1.2em;
 }
 
 .transactions-section {

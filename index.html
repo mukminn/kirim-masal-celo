@@ -18,6 +18,11 @@
             <div class="wallet-info" id="walletInfo">
                 <p>Belum terhubung ke wallet</p>
             </div>
+            <div class="wallet-balance" id="walletBalance" style="display: none;">
+                <span class="balance-label">Saldo:</span>
+                <span class="balance-value" id="balanceValue">0.0000</span>
+                <span class="balance-currency">CELO</span>
+            </div>
             <button id="connectWallet" class="btn btn-primary">Hubungkan Wallet</button>
         </div>
 
@@ -25,9 +30,29 @@
             <div class="form-section">
                 <h2>Daftar Penerima</h2>
                 <div class="input-group">
-                    <label for="recipientList">Alamat & Jumlah (Format: alamat,jumlah per baris)</label>
-                    <textarea id="recipientList" placeholder="0x1234...,1.5&#10;0x5678...,2.0&#10;0x9abc...,0.5" rows="10"></textarea>
-                    <small>Contoh: 0x1234567890123456789012345678901234567890,1.5</small>
+                    <label for="recipientList">
+                        Alamat Penerima & Jumlah CELO
+                        <small>(Format: satu penerima per baris)</small>
+                    </label>
+                    <div class="input-format">
+                        <div class="format-example">
+                            <strong>Format:</strong> <code>alamat,jumlah</code> atau <code>alamat, jumlah</code>
+                        </div>
+                        <div class="format-example">
+                            <strong>Contoh:</strong>
+                        </div>
+                        <div class="example-row">
+                            <code>0x1234567890123456789012345678901234567890, 1.5</code>
+                        </div>
+                        <div class="example-row">
+                            <code>0x5678901234567890123456789012345678901234, 2.0</code>
+                        </div>
+                    </div>
+                    <textarea id="recipientList" placeholder="0x1234567890123456789012345678901234567890, 1.5&#10;0x5678901234567890123456789012345678901234, 2.0&#10;0x9abcdef0123456789012345678901234567890, 0.5" rows="8"></textarea>
+                    <div class="input-hint">
+                        <span class="hint-icon">ℹ️</span>
+                        <span>Pisahkan alamat dan jumlah dengan koma. Satu penerima per baris.</span>
+                    </div>
                 </div>
                 
                 <div class="stats">
@@ -37,7 +62,15 @@
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Total CELO:</span>
-                        <span class="stat-value" id="totalAmount">0</span>
+                        <span class="stat-value" id="totalAmount">0.0000</span>
+                    </div>
+                    <div class="stat-item highlight">
+                        <span class="stat-label">Saldo Tersedia:</span>
+                        <span class="stat-value" id="availableBalance">0.0000</span>
+                    </div>
+                    <div class="stat-item" id="balanceWarning" style="display: none;">
+                        <span class="stat-label warning">⚠️ Kekurangan:</span>
+                        <span class="stat-value warning" id="balanceShortage">0.0000</span>
                     </div>
                 </div>
 

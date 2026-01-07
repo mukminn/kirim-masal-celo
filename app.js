@@ -14,6 +14,7 @@ const CELO_MAINNET = {
 let provider = null;
 let signer = null;
 let walletAddress = null;
+let walletBalance = null;
 let transactions = [];
 
 // Initialize - Wait for ethers library to load
@@ -106,10 +107,14 @@ async function connectWallet() {
         signer = provider.getSigner();
         walletAddress = await signer.getAddress();
 
+        // Get wallet balance
+        await updateWalletBalance();
+
         // Update UI
         document.getElementById('walletInfo').innerHTML = `
             <p class="connected">✓ Terhubung: ${walletAddress.substring(0, 6)}...${walletAddress.substring(38)}</p>
         `;
+        document.getElementById('walletBalance').style.display = 'flex';
         document.getElementById('connectWallet').textContent = 'Wallet Terhubung';
         document.getElementById('connectWallet').disabled = true;
 
@@ -140,10 +145,62 @@ function disconnectWallet() {
     provider = null;
     signer = null;
     walletAddress = null;
+    walletBalance = null;
     document.getElementById('walletInfo').innerHTML = '<p>Belum terhubung ke wallet</p>';
+    document.getElementById('walletBalance').style.display = 'none';
     document.getElementById('connectWallet').textContent = 'Hubungkan Wallet';
     document.getElementById('connectWallet').disabled = false;
+    updateStats();
     addStatusLog('Wallet terputus', 'info');
+}
+
+async function updateWalletBalance() {
+    if (!provider || !walletAddress) {
+        return;
+    }
+
+    try {
+        const balance = await provider.getBalance(walletAddress);
+        walletBalance = parseFloat(ethers.utils.formatEther(balance));
+        document.getElementById('balanceValue').textContent = walletBalance.toFixed(4);
+        document.getElementById('availableBalance').textContent = walletBalance.toFixed(4);
+        updateBalanceWarning();
+    } catch (error) {
+        console.error('Error fetching balance:', error);
+        addStatusLog(`ERROR: Gagal mengambil saldo - ${error.message}`, 'error');
+    }
+}
+
+function updateBalanceWarning() {
+    if (!walletBalance && walletBalance !== 0) {
+        // Don't show warning if balance not loaded yet
+        return;
+    }
+
+    const totalAmount = parseFloat(document.getElementById('totalAmount').textContent) || 0;
+    const totalRecipients = parseInt(document.getElementById('totalRecipients').textContent) || 0;
+    const availableBalance = walletBalance || 0;
+    
+    // Estimate gas (roughly 0.001 CELO per transaction)
+    const estimatedGas = totalRecipients * 0.001;
+    const totalNeeded = totalAmount + estimatedGas;
+    
+    const balanceWarningEl = document.getElementById('balanceWarning');
+    const availableBalanceEl = document.getElementById('availableBalance');
+    
+    if (!balanceWarningEl || !availableBalanceEl) {
+        return; // Elements not ready yet
+    }
+    
+    if (totalNeeded > availableBalance && totalRecipients > 0) {
+        const shortage = (totalNeeded - availableBalance).toFixed(4);
+        document.getElementById('balanceShortage').textContent = shortage;
+        balanceWarningEl.style.display = 'block';
+        availableBalanceEl.classList.add('insufficient');
+    } else {
+        balanceWarningEl.style.display = 'none';
+        availableBalanceEl.classList.remove('insufficient');
+    }
 }
 
 function updateStats() {
@@ -151,10 +208,20 @@ function updateStats() {
         return; // Skip if ethers not loaded
     }
 
-    const recipientList = document.getElementById('recipientList').value.trim();
+    const recipientListEl = document.getElementById('recipientList');
+    if (!recipientListEl) {
+        return; // Element not ready
+    }
+
+    const recipientList = recipientListEl.value.trim();
     if (!recipientList) {
-        document.getElementById('totalRecipients').textContent = '0';
-        document.getElementById('totalAmount').textContent = '0';
+        const totalRecipientsEl = document.getElementById('totalRecipients');
+        const totalAmountEl = document.getElementById('totalAmount');
+        if (totalRecipientsEl) totalRecipientsEl.textContent = '0';
+        if (totalAmountEl) totalAmountEl.textContent = '0.0000';
+        if (walletBalance !== null) {
+            updateBalanceWarning();
+        }
         return;
     }
 
@@ -163,23 +230,64 @@ function updateStats() {
     let validCount = 0;
 
     lines.forEach(line => {
-        const parts = line.split(',').map(p => p.trim());
-        if (parts.length === 2) {
-            const address = parts[0];
-            const amount = parseFloat(parts[1]);
-            try {
-                if (ethers.utils.isAddress(address) && !isNaN(amount) && amount > 0) {
-                    totalAmount += amount;
-                    validCount++;
-                }
-            } catch (e) {
-                // Skip invalid address
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return; // Skip empty lines
+        
+        // Try to find Ethereum address (0x followed by 40 hex characters)
+        const addressMatch = trimmedLine.match(/0x[a-fA-F0-9]{40}/);
+        
+        if (!addressMatch) {
+            return; // Skip if no valid address found
+        }
+        
+        const address = addressMatch[0];
+        
+        // Validate address using ethers
+        try {
+            if (!ethers.utils.isAddress(address)) {
+                return; // Skip invalid address
             }
+        } catch (e) {
+            return; // Skip invalid address
+        }
+        
+        // Extract amount - remove address and separators, get remaining part
+        // Use replace only for first occurrence to avoid issues
+        let amountStr = trimmedLine.replace(new RegExp('^' + address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), '').trim();
+        
+        // Remove separators (comma, semicolon, tabs, spaces)
+        amountStr = amountStr.replace(/^[,;\t\s]+/, '').trim();
+        
+        // Extract numeric value (support decimal points, but validate format)
+        // Match valid decimal number (not just dots)
+        const amountMatch = amountStr.match(/^(\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/);
+        
+        if (!amountMatch || !amountMatch[1]) {
+            return; // Skip if no amount found
+        }
+        
+        const amount = parseFloat(amountMatch[1] || amountMatch[0]);
+        
+        if (!isNaN(amount) && isFinite(amount) && amount > 0 && amount < 1e18) {
+            totalAmount += amount;
+            validCount++;
         }
     });
 
-    document.getElementById('totalRecipients').textContent = validCount;
-    document.getElementById('totalAmount').textContent = totalAmount.toFixed(4);
+    const totalRecipientsEl = document.getElementById('totalRecipients');
+    const totalAmountEl = document.getElementById('totalAmount');
+    
+    if (totalRecipientsEl) {
+        totalRecipientsEl.textContent = validCount;
+    }
+    if (totalAmountEl) {
+        totalAmountEl.textContent = totalAmount.toFixed(4);
+    }
+    
+    // Update balance warning only if wallet is connected
+    if (walletBalance !== null && walletBalance !== undefined) {
+        updateBalanceWarning();
+    }
 }
 
 function prepareTransactions() {
@@ -204,32 +312,65 @@ function prepareTransactions() {
     transactions = [];
 
     lines.forEach((line, index) => {
-        const parts = line.split(',').map(p => p.trim());
-        if (parts.length === 2) {
-            const address = parts[0];
-            const amount = parts[1];
-
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return; // Skip empty lines
+        
+        // Try to find Ethereum address (0x followed by 40 hex characters)
+        const addressMatch = trimmedLine.match(/0x[a-fA-F0-9]{40}/);
+        
+        if (!addressMatch) {
+            addStatusLog(`Baris ${index + 1}: Alamat Ethereum tidak ditemukan - ${trimmedLine.substring(0, 30)}...`, 'error');
+            return;
+        }
+        
+        const address = addressMatch[0];
+        
+        // Validate address using ethers
+        try {
             if (!ethers.utils.isAddress(address)) {
                 addStatusLog(`Baris ${index + 1}: Alamat tidak valid - ${address}`, 'error');
                 return;
             }
-
-            const amountNum = parseFloat(amount);
-            if (isNaN(amountNum) || amountNum <= 0) {
-                addStatusLog(`Baris ${index + 1}: Jumlah tidak valid - ${amount}`, 'error');
-                return;
-            }
-
-            transactions.push({
-                id: index,
-                address: address,
-                amount: ethers.utils.parseEther(amountNum.toString()),
-                amountDisplay: amountNum,
-                status: 'pending'
-            });
-        } else {
-            addStatusLog(`Baris ${index + 1}: Format tidak valid`, 'error');
+        } catch (e) {
+            addStatusLog(`Baris ${index + 1}: Alamat tidak valid - ${address}`, 'error');
+            return;
         }
+        
+        // Extract amount - remove address and separators, get remaining part
+        // Use replace only for first occurrence to avoid issues
+        let amountStr = trimmedLine.replace(new RegExp('^' + address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), '').trim();
+        
+        // Remove separators (comma, semicolon, tabs, spaces)
+        amountStr = amountStr.replace(/^[,;\t\s]+/, '').trim();
+        
+        // Extract numeric value (support decimal points and scientific notation)
+        // Match valid decimal number (not just dots)
+        const amountMatch = amountStr.match(/^(\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/);
+        
+        if (!amountMatch || !amountMatch[1]) {
+            addStatusLog(`Baris ${index + 1}: Jumlah tidak ditemukan setelah alamat - ${trimmedLine}`, 'error');
+            return;
+        }
+        
+        const amountNum = parseFloat(amountMatch[1] || amountMatch[0]);
+        
+        if (isNaN(amountNum) || !isFinite(amountNum) || amountNum <= 0) {
+            addStatusLog(`Baris ${index + 1}: Jumlah tidak valid - ${amountMatch[1] || amountMatch[0]}`, 'error');
+            return;
+        }
+
+        if (amountNum >= 1e18) {
+            addStatusLog(`Baris ${index + 1}: Jumlah terlalu besar - ${amountNum}`, 'error');
+            return;
+        }
+
+        transactions.push({
+            id: transactions.length,
+            address: address,
+            amount: ethers.utils.parseEther(amountNum.toString()),
+            amountDisplay: amountNum,
+            status: 'pending'
+        });
     });
 
     if (transactions.length === 0) {
@@ -349,6 +490,8 @@ async function sendAllTransactions() {
                 tx.status = 'success';
                 updateTransactionStatus(tx.id, 'success');
                 addStatusLog(`✓ Transaksi ${i + 1} berhasil! Hash: ${txResponse.hash}`, 'success');
+                // Update balance after successful transaction
+                await updateWalletBalance();
             } else {
                 tx.status = 'failed';
                 updateTransactionStatus(tx.id, 'failed');
@@ -365,6 +508,9 @@ async function sendAllTransactions() {
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
+    // Final balance update
+    await updateWalletBalance();
+    
     document.getElementById('sendAll').disabled = false;
     addStatusLog('Semua transaksi selesai diproses!', 'info');
 }
